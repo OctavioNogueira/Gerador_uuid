@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de identificadores únicos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #F3F4F7;
+    --surface: #FFFFFF;
+    --ink: #14171F;
+    --ink-soft: #5B6170;
+    --border: #E2E4E9;
+    --accent: #0E7C66;
+    --accent-soft: #E4F3EE;
+    --accent-ink: #07432F;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 0 20px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 48px 0 64px; }
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 28px;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .sub { color: var(--ink-soft); font-size: 15px; margin: 0 0 32px; line-height: 1.6; max-width: 480px; }
+
+  .hero {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 36px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero .num {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 48px;
+    color: var(--accent-ink);
+    line-height: 1;
+  }
+  .hero .label { color: var(--ink-soft); font-size: 14px; max-width: 220px; line-height: 1.5; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 20px; }
+  .panel h2 { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 500; margin: 0 0 16px; }
+
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip {
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink);
+    padding: 7px 14px; border-radius: 999px; font-size: 13px; font-family: inherit; cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .chip:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+  .custom-row { display: flex; gap: 10px; align-items: stretch; }
+  input[type="number"] {
+    flex: 1; min-width: 0; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--ink); background: var(--bg);
+  }
+  input[type="number"]:focus-visible, .chip:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  button.primary {
+    background: var(--accent); color: #fff; border: none; border-radius: 10px;
+    padding: 10px 20px; font-size: 14px; font-weight: 500; font-family: inherit; cursor: pointer;
+    transition: opacity .15s;
+  }
+  button.primary:hover { opacity: .9; }
+  button.primary:disabled { opacity: .5; cursor: default; }
+
+  .hint { font-size: 12px; color: var(--ink-soft); margin: 8px 0 0; }
+  .note { font-size: 13px; color: var(--ink-soft); margin-top: 10px; line-height: 1.5; }
+
+  .row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+  .row:last-child { border-bottom: none; }
+  .row .uuid { font-family: 'JetBrains Mono', monospace; font-size: 13px; flex: 1; word-break: break-all; }
+  .icon-btn {
+    border: 1px solid var(--border); background: var(--surface); border-radius: 8px; width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--ink-soft); flex-shrink: 0;
+    font-size: 14px; transition: background .15s;
+  }
+  .icon-btn:hover { background: var(--bg); color: var(--ink); }
+
+  .actions { display: flex; gap: 10px; margin-top: 16px; }
+  button.secondary {
+    background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 10px;
+    padding: 9px 16px; font-size: 13px; font-family: inherit; cursor: pointer;
+  }
+  button.secondary:hover { background: var(--bg); }
+
+  .empty { color: var(--ink-soft); font-size: 14px; padding: 20px 0; text-align: center; }
+
+  @media (max-width: 520px) {
+    .hero { flex-direction: column; gap: 4px; }
+    .custom-row { flex-direction: column; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Gerador de identificadores únicos</h1>
+  <p class="sub">Escolha quantos UUIDs você precisa. Cada novo lote é verificado contra todos os que já foram emitidos por aqui — nesta ferramenta, ninguém recebe duas vezes o mesmo identificador, mesmo com várias pessoas usando ao mesmo tempo.</p>
+
+  <div class="hero">
+    <span class="num" id="counter">—</span>
+    <span class="label">identificadores emitidos por toda a equipe até agora</span>
+  </div>
+
+  <div class="panel">
+    <h2>Quantos você precisa?</h2>
+    <div class="chips">
+      <button class="chip" data-n="5">5</button>
+      <button class="chip" data-n="10">10</button>
+      <button class="chip" data-n="25">25</button>
+      <button class="chip" data-n="50">50</button>
+      <button class="chip" data-n="100">100</button>
+    </div>
+    <div class="custom-row">
+      <input type="number" id="qty" min="1" max="500" value="20" aria-label="Quantidade personalizada">
+      <button class="primary" id="gen-btn">Gerar</button>
+    </div>
+    <p class="hint">Máximo de 500 por lote.</p>
+    <p class="note" id="status-note">Carregando registro compartilhado…</p>
+  </div>
+
+  <div class="panel">
+    <h2>Último lote gerado</h2>
+    <div id="list">
+      <div class="empty">Gere seu primeiro lote acima.</div>
+    </div>
+    <div class="actions" id="batch-actions" style="display:none;">
+      <button class="secondary" id="copy-all">Copiar tudo</button>
+      <button class="secondary" id="download-all">Baixar .txt</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const REG_KEY = 'uuid-registry';
+  const CAP = 20000;
+  let currentBatch = [];
+
+  async function loadRegistry() {
+    try {
+      const res = await window.storage.get(REG_KEY, true);
+      if (res && res.value) return JSON.parse(res.value);
+    } catch (e) {}
+    return { count: 0, issued: [] };
+  }
+
+  async function saveRegistry(reg) {
+    try {
+      await window.storage.set(REG_KEY, JSON.stringify(reg), true);
+    } catch (e) {
+      console.error('Erro ao salvar registro compartilhado', e);
+    }
+  }
+
+  function identicon(uuidStr) {
+    const hex = uuidStr.replace(/-/g, '');
+    const size = 5, half = 3;
+    let grid = [];
+    for (let r = 0; r < size; r++) {
+      let row = [];
+      for (let c = 0; c < half; c++) {
+        const idx = (r * half + c) % hex.length;
+        row.push(parseInt(hex[idx], 16) % 2 === 0);
+      }
+      grid.push(row.concat(row.slice(0, size - half).reverse()));
+    }
+    const hue = parseInt(hex.slice(0, 3), 16) % 360;
+    const color = 'hsl(' + hue + ', 55%, 45%)';
+    let html = '<div style="display:grid;grid-template-columns:repeat(' + size + ',1fr);width:26px;height:26px;gap:1px;flex-shrink:0;">';
+    for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) html += '<div style="background:' + (grid[r][c] ? color : 'transparent') + ';"></div>';
+    return html + '</div>';
+  }
+
+  function renderBatch(batch) {
+    currentBatch = batch;
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+    batch.forEach(u => {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = identicon(u);
+      const span = document.createElement('span');
+      span.className = 'uuid';
+      span.textContent = u;
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'icon-btn';
+      copyBtn.setAttribute('aria-label', 'Copiar');
+      copyBtn.textContent = '⧉';
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(u);
+        copyBtn.textContent = '✓';
+        setTimeout(() => { copyBtn.textContent = '⧉'; }, 1000);
+      };
+      row.appendChild(span);
+      row.appendChild(copyBtn);
+      list.appendChild(row);
+    });
+    document.getElementById('batch-actions').style.display = batch.length ? 'flex' : 'none';
+  }
+
+  function setCounter(n) {
+    document.getElementById('counter').textContent = n.toLocaleString('pt-BR');
+  }
+
+  async function handleGenerate(n) {
+    n = Math.max(1, Math.min(500, Math.floor(n)));
+    const btn = document.getElementById('gen-btn');
+    const note = document.getElementById('status-note');
+    btn.disabled = true;
+    note.textContent = 'Gerando e verificando duplicidade…';
+    const reg = await loadRegistry();
+    const issuedSet = new Set(reg.issued);
+    const batch = [];
+    while (batch.length < n) {
+      const candidate = crypto.randomUUID();
+      if (!issuedSet.has(candidate)) {
+        issuedSet.add(candidate);
+        batch.push(candidate);
+      }
+    }
+    reg.count = (reg.count || 0) + n;
+    let issuedArr = Array.from(issuedSet);
+    if (issuedArr.length > CAP) issuedArr = issuedArr.slice(issuedArr.length - CAP);
+    reg.issued = issuedArr;
+    await saveRegistry(reg);
+    renderBatch(batch);
+    setCounter(reg.count);
+    note.textContent = n + ' identificador' + (n > 1 ? 'es' : '') + ' gerado' + (n > 1 ? 's' : '') + ', nenhum repetido.';
+    btn.disabled = false;
+  }
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.onclick = () => {
+      const n = parseInt(chip.dataset.n, 10);
+      document.getElementById('qty').value = n;
+      handleGenerate(n);
+    };
+  });
+
+  document.getElementById('gen-btn').onclick = () => {
+    handleGenerate(parseInt(document.getElementById('qty').value, 10) || 1);
+  };
+
+  document.getElementById('copy-all').onclick = () => {
+    navigator.clipboard.writeText(currentBatch.join('\n'));
+    const b = document.getElementById('copy-all');
+    const original = b.textContent;
+    b.textContent = 'Copiado';
+    setTimeout(() => { b.textContent = original; }, 1200);
+  };
+
+  document.getElementById('download-all').onclick = () => {
+    const blob = new Blob([currentBatch.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'uuids.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  (async () => {
+    const reg = await loadRegistry();
+    setCounter(reg.count || 0);
+    document.getElementById('status-note').textContent = 'Pronto. Escolha uma quantidade e gere.';
+  })();
+</script>
+</body>
+</html>
